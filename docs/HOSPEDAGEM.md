@@ -19,17 +19,19 @@ O site tem duas partes, e as duas têm plano gratuito:
    região **South America (São Paulo)** → **Create new project**. Espere ~2 minutos.
 3. Menu lateral → **SQL Editor** → **New query**. Abra o arquivo `supabase/schema.sql` deste
    projeto, copie tudo, cole e clique em **Run**. Deve aparecer *Success. No rows returned*.
+   Em seguida, faça o mesmo com cada arquivo da pasta `supabase/migracoes/`, **em ordem**
+   (`002_...`, depois `003_...` etc.). Banco já em uso? Veja `docs/ATUALIZACAO-V2.md`.
 4. Menu → **Authentication** → **Sign In / Providers** → em *Email*, **desative “Allow new users to sign up”**
    (assim ninguém de fora cria conta sozinho; os acessos são criados pelo administrador no site).
 5. Crie o **primeiro administrador** (você). Ainda no **SQL Editor**, numa nova query, rode
    trocando o ID, a senha e o nome:
 
    ```sql
-   select public.admin_criar_usuario('admin', 'TroqueEstaSenha123', 'Gabriel Sousa', 'admin');
+   select public.admin_criar_usuario('admin', 'TroqueEstaSenha123', 'Gabriel Sousa', 'master');
    ```
 
-   Esse é o único acesso criado pelo SQL. **Todos os outros você cria pelo próprio site**, na
-   aba **Administração** (só aparece para administradores): escolhe o membro, define o ID e uma
+   Esse é o único acesso criado pelo SQL, com o nível **master** (o único que gerencia acessos).
+   **Todos os outros você cria pelo próprio site**, na aba **Administração** (só aparece para o master): escolhe o membro, define o ID e uma
    senha provisória, e o site mostra uma mensagem pronta para copiar e mandar no WhatsApp.
    Cada membro pode trocar a própria senha depois, no ícone de chave ao lado do nome.
 6. Menu → **Project Settings** → **API** (ou *Data API*). Copie:

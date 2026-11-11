@@ -7,6 +7,8 @@ export function renderLogin(app, { db, aoEntrar }) {
     <div class="login-page">
       <div class="login-card">
         <div class="login-brand">
+          <img class="login-logo" src="assets/logo-crateus.png" width="720" height="760"
+               alt="Brasão do Capítulo Cidade de Crateús nº 831">
           <div class="eyebrow">Capítulo</div>
           <div class="brand-name xl">${esc(CONFIG.NOME_CAPITULO)}</div>
           <div class="brand-sub">${esc(CONFIG.SUBTITULO)}</div>
@@ -28,7 +30,8 @@ export function renderLogin(app, { db, aoEntrar }) {
             <strong>Modo demonstração</strong>
             <p>Nenhum banco configurado ainda. Entre com um dos perfis de teste:</p>
             <div class="demo-btns">
-              <button class="btn" data-demo="admin|admin123">Administrador<br><small class="muted">admin · admin123</small></button>
+              <button class="btn" data-demo="master|master123">Master<br><small class="muted">master · master123</small></button>
+              <button class="btn" data-demo="rafael|admin123">Administrador<br><small class="muted">rafael · admin123</small></button>
               <button class="btn" data-demo="igor|membro123">Membro<br><small class="muted">igor · membro123</small></button>
             </div>
           </div>` : ''}

@@ -15,7 +15,17 @@ import * as calendario from './pages/calendario.js';
 import * as membros from './pages/membros.js';
 import * as admin from './pages/admin.js';
 
-// soAdmin: a rota nem aparece no menu de quem não é administrador
+// Níveis de acesso: master > admin > membro
+//   master → tudo do admin + aba Administração (acessos e senhas)
+//   admin  → altera dados (presença, caixa, mensalidades, calendário, membros)
+//   membro → só visualiza
+export const PERFIS = {
+  master: 'Administrador master',
+  admin: 'Administrador',
+  membro: 'Membro · somente leitura',
+};
+
+// soMaster: a rota nem aparece no menu de quem não é master
 const ROTAS = {
   painel: { titulo: 'Painel', icone: 'painel', mod: painel },
   presenca: { titulo: 'Presença', icone: 'presenca', mod: presenca },
@@ -23,7 +33,7 @@ const ROTAS = {
   mensalidades: { titulo: 'Mensalidades', icone: 'mensalidades', mod: mensalidades },
   calendario: { titulo: 'Calendário', icone: 'calendario', mod: calendario },
   membros: { titulo: 'Membros', icone: 'membros', mod: membros },
-  admin: { titulo: 'Administração', icone: 'escudo', mod: admin, soAdmin: true },
+  admin: { titulo: 'Administração', icone: 'escudo', mod: admin, soMaster: true },
 };
 
 const app = document.getElementById('app');
@@ -42,7 +52,7 @@ async function iniciar() {
 
 function rotaAtual() {
   const nome = location.hash.replace(/^#\/?/, '').split('?')[0];
-  if (!ROTAS[nome] || (ROTAS[nome].soAdmin && usuario?.role !== 'admin')) return 'painel';
+  if (!ROTAS[nome] || (ROTAS[nome].soMaster && usuario?.role !== 'master')) return 'painel';
   return nome;
 }
 
@@ -71,9 +81,12 @@ function alterarSenha() {
 function marca() {
   return `
     <div class="brand">
-      <div class="eyebrow">Capítulo</div>
-      <div class="brand-name">${esc(CONFIG.NOME_CAPITULO)}</div>
-      <div class="brand-sub">${esc(CONFIG.SUBTITULO)}</div>
+      <img class="brand-logo" src="assets/logo-crateus-sm.png" width="160" height="169" alt="">
+      <div>
+        <div class="eyebrow">Capítulo</div>
+        <div class="brand-name">${esc(CONFIG.NOME_CAPITULO)}</div>
+        <div class="brand-sub">${esc(CONFIG.SUBTITULO)}</div>
+      </div>
     </div>`;
 }
 
@@ -88,9 +101,10 @@ async function render() {
   }
 
   const atual = rotaAtual();
-  const admin = usuario.role === 'admin';
-  const nav = Object.entries(ROTAS).filter(([, r]) => !r.soAdmin || admin).map(([k, r]) => `
-    ${r.soAdmin ? '<div class="nav-sep">Restrito</div>' : ''}
+  const master = usuario.role === 'master';
+  const admin = master || usuario.role === 'admin';   // master também pode tudo que o admin pode
+  const nav = Object.entries(ROTAS).filter(([, r]) => !r.soMaster || master).map(([k, r]) => `
+    ${r.soMaster ? '<div class="nav-sep">Restrito ao master</div>' : ''}
     <a href="#/${k}" class="nav-item ${k === atual ? 'ativo' : ''}" ${k === atual ? 'aria-current="page"' : ''}>
       ${icon(r.icone)}<span>${r.titulo}</span>
     </a>`).join('');
@@ -106,7 +120,7 @@ async function render() {
             <div class="avatar">${esc(iniciais(usuario.nome))}</div>
             <div class="user-info">
               <strong>${esc(usuario.nome)}</strong>
-              <small>${admin ? 'Administrador' : 'Membro · somente leitura'}</small>
+              <small>${PERFIS[usuario.role] || PERFIS.membro}</small>
             </div>
             <button class="btn-icon" id="trocarSenha" title="Alterar minha senha" aria-label="Alterar minha senha">${icon('chave')}</button>
             <button class="btn-icon" id="sair" title="Sair" aria-label="Sair">${icon('sair')}</button>
@@ -118,6 +132,7 @@ async function render() {
         <header class="topbar">
           <button class="btn-icon" id="abrirMenu" aria-label="Abrir menu">${icon('menu')}</button>
           <div class="topbar-title">
+            <img class="topbar-logo" src="assets/logo-crateus-sm.png" width="160" height="169" alt="">
             <span class="eyebrow">Capítulo</span>
             <span class="brand-name sm">${esc(CONFIG.NOME_CAPITULO)}</span>
           </div>
@@ -148,6 +163,7 @@ async function render() {
     db,
     usuario,
     admin,
+    master,
     recarregar: () => ROTAS[atual].mod.render(main, ctx),
   };
   try {

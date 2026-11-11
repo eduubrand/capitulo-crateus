@@ -6,7 +6,11 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm';
 import { CONFIG } from '../config.js';
 
-const sb = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+// Aceita a URL mesmo se colada com "/rest/v1/" ou barra no final
+// (o cliente monta esses caminhos sozinho; duplicá-los gera
+// "Invalid path specified in request URL").
+const URL_PROJETO = CONFIG.SUPABASE_URL.trim().replace(/\/(rest|auth)\/v1\/?$/, '').replace(/\/+$/, '');
+const sb = createClient(URL_PROJETO, CONFIG.SUPABASE_ANON_KEY.trim());
 
 const PK = {
   membros: ['id'], eventos: ['id'], lancamentos: ['id'],
@@ -63,9 +67,9 @@ export const db = {
     if (error) throw erro(error);
   },
 
-  // ---------- gestão de acessos (somente admin) ----------
+  // ---------- gestão de acessos (somente master) ----------
   // Criar/excluir usuários e trocar senha de outra pessoa mexem em auth.users,
-  // então são feitos por funções SQL (RPC) que conferem se quem chama é admin.
+  // então são feitos por funções SQL (RPC) que conferem se quem chama é master.
   async listarUsuarios() {
     return ok(await sb.from('profiles').select('id, login, nome, role, membro_id').order('nome'));
   },

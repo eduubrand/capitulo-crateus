@@ -10,7 +10,7 @@
 // protege os dados são as regras RLS do banco, não o segredo da chave.
 // =============================================================
 export const CONFIG = {
-  SUPABASE_URL: 'https://aorehpnrwjktndvpfmpg.supabase.co/rest/v1/',
+  SUPABASE_URL: 'https://aorehpnrwjktndvpfmpg.supabase.co',   // só o endereço do projeto, sem /rest/v1
   SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFvcmVocG5yd2prdG5kdnBmbXBnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQwNjc5MjksImV4cCI6MjEwOTY0MzkyOX0.C2MBbdyH7L14PP5QEXBRKyTF916lWbZe5fRcY1Ew0Dk',
 
   // Login é feito por ID (ex.: "arthur" ou "12345"). Por baixo, o Supabase

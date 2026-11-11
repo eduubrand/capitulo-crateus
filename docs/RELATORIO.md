@@ -3,6 +3,10 @@
 Este relatório explica **o que foi construído, por que de cada decisão e como cada parte
 funciona**, para servir de material de estudo. Sugestão: leia com o código aberto ao lado.
 
+> **Versão 2:** nível *master*, categorias Sênior/Consultor, chamada em duas seções e brasão.
+> As mudanças e o passo a passo de atualização estão em **[ATUALIZACAO-V2.md](ATUALIZACAO-V2.md)**.
+> Partes deste relatório que falam em "admin gerencia acessos" valem agora para o **master**.
+
 ---
 
 ## 1. Visão geral

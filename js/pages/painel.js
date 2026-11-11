@@ -19,7 +19,7 @@ export async function render(el, { db, admin }) {
   // --- KPIs ---
   const saldo = saldoAtual(lancamentos);
   const sessoes = sessoesComChamada(eventos, presencas);
-  const ultimas4 = sessoes.slice(0, 4).map((s) => resumoChamada(s.id, presencas, quadro.length));
+  const ultimas4 = sessoes.slice(0, 4).map((s) => resumoChamada(s.id, presencas, quadro));
   const mediaPres = ultimas4.length ? Math.round(ultimas4.reduce((a, r) => a + r.pct, 0) / ultimas4.length) : 0;
   const pagaramMes = mensalidades.filter((m) => m.competencia === mes && quadro.some((q) => q.id === Number(m.membro_id))).length;
   const prox = proximoEvento(eventos, (e) => e.tipo === 'sessao' || e.tipo === 'cerimonia') || proximoEvento(eventos);
@@ -68,7 +68,7 @@ export async function render(el, { db, admin }) {
       <div class="card">
         <div class="card-head"><h2>Presença nas últimas sessões</h2><a class="link" href="#/presenca">Abrir chamadas</a></div>
         ${sessoes.length ? `<ul class="barras">${sessoes.slice(0, 5).map((s) => {
-          const r = resumoChamada(s.id, presencas, quadro.length);
+          const r = resumoChamada(s.id, presencas, quadro);
           return `<li title="${r.P} presentes, ${r.F} faltas, ${r.J} justificadas">
             <div class="barras-rot"><strong>${fmtDia(s.data)}</strong><small>${esc(s.titulo)}</small></div>
             <div class="barra"><span style="width:${r.pct}%"></span></div>

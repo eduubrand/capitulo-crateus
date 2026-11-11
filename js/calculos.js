@@ -3,7 +3,20 @@
 import { hojeISO, competencia } from './utils.js';
 
 export const ordenarMembros = (ms) => [...ms].sort((a, b) => (a.ordem - b.ordem) || a.nome.localeCompare(b.nome));
-export const ativos = (ms) => ordenarMembros(ms.filter((m) => m.ativo));
+
+// Categorias do quadro. Membros antigos (sem a coluna) contam como 'demolay'.
+export const CATEGORIAS = {
+  demolay: { nome: 'DeMolay', plural: 'DeMolays' },
+  senior: { nome: 'Sênior DeMolay', plural: 'Seniores DeMolay' },
+  consultor: { nome: 'Consultor', plural: 'Consultores' },
+};
+export const categoriaDe = (m) => (CATEGORIAS[m.categoria] ? m.categoria : 'demolay');
+
+// DeMolays ativos: a base do quórum e das mensalidades.
+export const ativos = (ms) => ordenarMembros(ms.filter((m) => m.ativo && categoriaDe(m) === 'demolay'));
+// Seniores e consultores ativos: aparecem na chamada, mas fora do quórum.
+export const apoio = (ms) => ordenarMembros(ms.filter((m) => m.ativo && categoriaDe(m) !== 'demolay'))
+  .sort((a, b) => (categoriaDe(a) === 'consultor') - (categoriaDe(b) === 'consultor'));
 
 // Saldo e lançamentos em ordem cronológica, com saldo acumulado em cada linha
 export function livroCaixa(lancamentos) {
@@ -26,12 +39,15 @@ export function sessoesComChamada(eventos, presencas) {
     .sort((a, b) => b.data.localeCompare(a.data));
 }
 
-export function resumoChamada(eventoId, presencas, totalMembros) {
-  const ps = presencas.filter((p) => Number(p.evento_id) === Number(eventoId));
+// Quórum de uma sessão. "quadro" = lista de quem conta (DeMolays ativos);
+// marcações de seniores/consultores são ignoradas aqui.
+export function resumoChamada(eventoId, presencas, quadro) {
+  const ids = new Set(quadro.map((m) => Number(m.id)));
+  const ps = presencas.filter((p) => Number(p.evento_id) === Number(eventoId) && ids.has(Number(p.membro_id)));
   const P = ps.filter((p) => p.status === 'P').length;
   const F = ps.filter((p) => p.status === 'F').length;
   const J = ps.filter((p) => p.status === 'J').length;
-  return { P, F, J, total: totalMembros, pct: totalMembros ? Math.round((P / totalMembros) * 100) : 0 };
+  return { P, F, J, total: quadro.length, pct: quadro.length ? Math.round((P / quadro.length) * 100) : 0 };
 }
 
 export function proximoEvento(eventos, filtro = () => true) {

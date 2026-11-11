@@ -11,9 +11,10 @@ livro de caixa e calendário, com painel de indicadores. Funciona no computador 
 | **Mensalidades** | Quadro do semestre (membro × mês). Marcar como pago lança a entrada no caixa automaticamente |
 | **Calendário** | Mês em grade, sessões, reuniões, cerimônias e eventos; adicionar/editar/excluir |
 | **Membros** | Quadro de membros, cargos, ativo/inativo e frequência |
-| **Administração** *(só admin)* | Cria o acesso de cada membro (ID + senha), redefine senha, define quem é admin, exclui acesso |
+| **Administração** *(só master)* | Cria o acesso de cada membro (ID + senha), redefine senha, define quem é admin, exclui acesso |
 
-**Perfis:** *Administrador* vê e altera tudo · *Membro* só visualiza.
+**Perfis:** *Master* faz tudo e gerencia acessos · *Administrador* altera os dados · *Membro* só visualiza.
+**Quadro:** DeMolays (contam no quórum e pagam mensalidade), Seniores DeMolay e Consultores (lista separada na chamada).
 **Login:** todos entram com **ID + senha** cadastrados pelo administrador; cada um pode trocar a própria senha.
 
 ## Testar agora (modo demonstração)
@@ -27,7 +28,11 @@ powershell -ExecutionPolicy Bypass -File ferramentas\servidor-local.ps1 -Root . 
 ```
 
 Depois abra <http://localhost:5731> e entre como **Administrador** ou **Membro** pelos botões da tela de login
-(ID `admin` / senha `admin123`, ou ID `igor` / senha `membro123`).
+(`master` / `master123`, `rafael` / `admin123` ou `igor` / `membro123`).
+Com o Supabase já configurado, abra <http://localhost:5731/?demo> para usar o modo demonstração
+sem tocar nos dados reais.
+
+> **Atualizando de uma versão anterior?** Siga **[docs/ATUALIZACAO-V2.md](docs/ATUALIZACAO-V2.md)**.
 
 > Alternativa: a extensão **Live Server** do VS Code também serve.
 
@@ -35,10 +40,10 @@ Depois abra <http://localhost:5731> e entre como **Administrador** ou **Membro**
 
 Passo a passo completo em **[docs/HOSPEDAGEM.md](docs/HOSPEDAGEM.md)**. Resumo:
 
-1. Criar projeto grátis no **Supabase** e rodar `supabase/schema.sql`.
+1. Criar projeto grátis no **Supabase** e rodar `supabase/schema.sql` e depois as migrações de `supabase/migracoes/` em ordem.
 2. Colar URL e *anon key* em `js/config.js`.
 3. Subir a pasta no **GitHub** e ativar o **GitHub Pages** (ou arrastar a pasta no Netlify).
-4. Criar o primeiro admin com um comando SQL; os demais acessos são criados pela aba **Administração**.
+4. Criar o primeiro acesso com um comando SQL (ele vira **master**); os demais são criados pela aba **Administração**.
 
 ## Para estudar
 

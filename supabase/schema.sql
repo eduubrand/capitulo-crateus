@@ -2,6 +2,10 @@
 -- Capítulo Crateús — esquema do banco (Supabase / PostgreSQL)
 -- Como usar: Supabase > SQL Editor > New query > cole tudo > Run.
 -- Pode rodar mais de uma vez sem quebrar (usa IF NOT EXISTS / OR REPLACE).
+--
+-- ⚠️ Esta é a VERSÃO 1 do banco. Depois dela, rode em ordem os arquivos da
+-- pasta supabase/migracoes/ (002_..., 003_...). Cada migração evolui o banco
+-- sem apagar dados. Banco já em uso? Rode SÓ as migrações que faltam.
 -- =============================================================
 
 -- ---------- 1. TABELAS ----------------------------------------

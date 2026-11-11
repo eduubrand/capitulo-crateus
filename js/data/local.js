@@ -6,13 +6,14 @@
 // =============================================================
 import { gerarSeed } from './seed.js';
 
-const KEY = 'crateus_demo_v2';
-const SESSION_KEY = 'crateus_demo_sessao_v2';
+const KEY = 'crateus_demo_v3';
+const SESSION_KEY = 'crateus_demo_sessao_v3';
 
 // Acessos de exemplo (no Supabase eles ficam em auth.users + profiles)
 const USUARIOS_DEMO = [
-  { id: 'u1', login: 'admin', senha: 'admin123', nome: 'Gabriel Sousa', role: 'admin', membro_id: 4 },
-  { id: 'u2', login: 'igor', senha: 'membro123', nome: 'Igor Bezerra', role: 'membro', membro_id: 10 },
+  { id: 'u1', login: 'master', senha: 'master123', nome: 'Gabriel Sousa', role: 'master', membro_id: 4 },
+  { id: 'u2', login: 'rafael', senha: 'admin123', nome: 'Rafael Monteiro', role: 'admin', membro_id: 5 },
+  { id: 'u3', login: 'igor', senha: 'membro123', nome: 'Igor Bezerra', role: 'membro', membro_id: 10 },
 ];
 
 // Chave primária de cada tabela (para update/delete/upsert)
@@ -47,9 +48,14 @@ function usuarioAtual() {
   } catch { return null; }
 }
 function exigirAdmin() {
-  // Equivalente às políticas RLS "escrita_admin" e ao is_admin() do schema.sql
-  if (usuarioAtual()?.role !== 'admin') throw new Error('Permissão negada: apenas administradores podem alterar dados.');
+  // Equivalente às políticas RLS "escrita_admin" e ao is_admin() (admin OU master)
+  if (!['admin', 'master'].includes(usuarioAtual()?.role)) throw new Error('Permissão negada: apenas administradores podem alterar dados.');
 }
+function exigirMaster() {
+  // Equivalente ao is_master() / pode_gerir_acessos() da migração 002
+  if (usuarioAtual()?.role !== 'master') throw new Error('Permissão negada: apenas o administrador master pode gerenciar acessos.');
+}
+const ehMaster = (id) => state.usuarios.find((u) => u.id === id)?.role === 'master';
 export function normalizarLogin(l) { return String(l || '').trim().toLowerCase(); }
 function validarAcesso(login, senha) {
   if (!/^[a-z0-9._-]{3,40}$/.test(login)) throw new Error('ID inválido: use de 3 a 40 letras minúsculas, números, ponto, hífen ou sublinhado.');
@@ -108,13 +114,14 @@ export const db = {
     u.senha = nova; salvar();
   },
 
-  // ---------- gestão de acessos (somente admin) ----------
-  async listarUsuarios() { exigirAdmin(); return clone(state.usuarios.map(semSenha)); },
+  // ---------- gestão de acessos (somente master) ----------
+  async listarUsuarios() { exigirMaster(); return clone(state.usuarios.map(semSenha)); },
 
   async criarUsuario({ login, senha, nome, role, membro_id }) {
-    exigirAdmin(); await esperar();
+    exigirMaster(); await esperar();
     login = normalizarLogin(login);
     validarAcesso(login, senha);
+    if (!['admin', 'membro'].includes(role)) throw new Error('Um novo master só pode ser criado pelo SQL Editor do Supabase.');
     if (state.usuarios.some((u) => u.login === login)) throw new Error('Já existe um acesso com esse ID.');
     const novo = { id: 'u' + Date.now(), login, senha, nome, role, membro_id: membro_id || null };
     state.usuarios.push(novo); salvar();
@@ -122,21 +129,23 @@ export const db = {
   },
 
   async atualizarUsuario(id, { nome, role, membro_id }) {
-    exigirAdmin(); await esperar();
+    exigirMaster(); await esperar();
     const u = state.usuarios.find((x) => x.id === id);
-    if (id === usuarioAtual().id && role !== 'admin') throw new Error('Você não pode remover o seu próprio perfil de administrador.');
+    // Igual ao gatilho protege_proprio_admin: o perfil master não muda pelo site
+    if ((u.role === 'master' || role === 'master') && u.role !== role) throw new Error('O perfil master só pode ser alterado pelo SQL Editor do Supabase.');
     Object.assign(u, { nome, role, membro_id: membro_id || null }); salvar();
   },
 
   async redefinirSenha(id, senha) {
-    exigirAdmin(); await esperar();
+    exigirMaster(); await esperar();
     if (String(senha).length < 6) throw new Error('A senha precisa ter pelo menos 6 caracteres.');
     state.usuarios.find((x) => x.id === id).senha = senha; salvar();
   },
 
   async excluirUsuario(id) {
-    exigirAdmin(); await esperar();
+    exigirMaster(); await esperar();
     if (id === usuarioAtual().id) throw new Error('Você não pode excluir o seu próprio acesso.');
+    if (ehMaster(id)) throw new Error('Um acesso master só pode ser excluído pelo SQL Editor.');
     state.usuarios = state.usuarios.filter((x) => x.id !== id); salvar();
   },
 

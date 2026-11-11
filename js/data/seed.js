@@ -19,6 +19,15 @@ const MEMBROS = [
   ['Samuel Vieira', 'Membro'],
 ];
 
+// Seniores DeMolay e consultores (fora do quórum)
+const APOIO = [
+  ['Thiago Nogueira', 'Sênior DeMolay', 'senior'],
+  ['Vinícius Prado', 'Sênior DeMolay', 'senior'],
+  ['Antônio Carlos Mendes', 'Presidente do Conselho Consultivo', 'consultor'],
+  ['José Ribamar Lopes', 'Consultor do Capítulo', 'consultor'],
+];
+const HIST_APOIO = ['PFPPP', 'FFPFP', 'PPPPP', 'PFPFP'];
+
 // Histórico de presença nas sessões 10/10, 17/10, 24/10, 31/10 e 07/11
 const HIST = [
   'PPPPP', 'PPPPP', 'PPPPP', 'PPPPP', 'PPPPP', 'FPPPP', 'PPPFP', 'PFPPP',
@@ -36,8 +45,10 @@ const ABERTO = {
 
 export function gerarSeed() {
   const membros = MEMBROS.map(([nome, cargo], i) => ({
-    id: i + 1, nome, cargo, ativo: true, ordem: i + 1,
-  }));
+    id: i + 1, nome, cargo, categoria: 'demolay', ativo: true, ordem: i + 1,
+  })).concat(APOIO.map(([nome, cargo, categoria], i) => ({
+    id: MEMBROS.length + i + 1, nome, cargo, categoria, ativo: true, ordem: 100 + i,
+  })));
 
   let eid = 0;
   const ev = (titulo, tipo, data, hora = '19:30', local = 'Templo Maçônico de Crateús', descricao = '') =>
@@ -63,6 +74,9 @@ export function gerarSeed() {
   HIST.forEach((h, mi) => {
     [...h].forEach((st, si) => presencas.push({ evento_id: sessoesHist[si], membro_id: mi + 1, status: st }));
   });
+  HIST_APOIO.forEach((h, i) => {
+    [...h].forEach((st, si) => presencas.push({ evento_id: sessoesHist[si], membro_id: MEMBROS.length + i + 1, status: st }));
+  });
 
   let lid = 0;
   const l = (data, descricao, categoria, tipo, valor) =>
@@ -87,7 +101,7 @@ export function gerarSeed() {
   ];
 
   const mensalidades = [];
-  membros.forEach((m) => {
+  membros.filter((m) => m.categoria === 'demolay').forEach((m) => {
     ['2026-07', '2026-08', '2026-09', '2026-10', '2026-11'].forEach((c) => {
       if ((ABERTO[m.nome] || []).includes(c)) return;
       mensalidades.push({ membro_id: m.id, competencia: c, valor: 20, pago_em: c + '-08', lancamento_id: null });

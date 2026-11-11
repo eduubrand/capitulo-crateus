@@ -1,6 +1,14 @@
-// Aba "Administração": o admin cadastra os acessos (ID + senha) de cada membro.
+// Aba "Administração": SOMENTE o administrador master cadastra os acessos
+// (ID + senha), define quem é administrador e redefine senhas.
 import { esc, iniciais, icon, cabecalho, tentar, confirmar, abrirModal, toast } from '../utils.js';
-import { ordenarMembros } from '../calculos.js';
+import { ordenarMembros, categoriaDe, CATEGORIAS } from '../calculos.js';
+
+const PERFIL = {
+  master: { nome: 'Master', chip: 'chip-master', ordem: 0 },
+  admin: { nome: 'Administrador', chip: 'chip-sessao', ordem: 1 },
+  membro: { nome: 'Membro', chip: 'chip-off', ordem: 2 },
+};
+const perfilDe = (u) => PERFIL[u.role] || PERFIL.membro;
 
 const sugerirLogin = (nome) => {
   const p = String(nome).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
@@ -18,15 +26,15 @@ function gerarSenha() {
 
 export async function render(el, ctx) {
   const { db, usuario } = ctx;
-  if (!ctx.admin) { location.hash = '#/painel'; return; }
+  if (!ctx.master) { location.hash = '#/painel'; return; }
 
   const [usuarios, membros] = await Promise.all([db.listarUsuarios(), db.list('membros')]);
   const listaMembros = ordenarMembros(membros);
   const nomeMembro = (id) => listaMembros.find((m) => m.id === Number(id))?.nome;
-  const ordenados = [...usuarios].sort((a, b) => (a.role === b.role ? a.nome.localeCompare(b.nome) : a.role === 'admin' ? -1 : 1));
+  const ordenados = [...usuarios].sort((a, b) => (perfilDe(a).ordem - perfilDe(b).ordem) || a.nome.localeCompare(b.nome));
   const comAcesso = new Set(usuarios.map((u) => Number(u.membro_id)).filter(Boolean));
   const semAcesso = listaMembros.filter((m) => m.ativo && !comAcesso.has(m.id));
-  const nAdmin = usuarios.filter((u) => u.role === 'admin').length;
+  const nAdmin = usuarios.filter((u) => u.role === 'admin' || u.role === 'master').length;
 
   el.innerHTML = `
     ${cabecalho('Área restrita', 'Administração de', 'Acessos',
@@ -52,11 +60,11 @@ export async function render(el, ctx) {
               <small class="muted block show-sm">${esc(nomeMembro(u.membro_id) || '')}</small></div></div></td>
             <td><code class="login">${esc(u.login || '—')}</code></td>
             <td class="muted hide-sm">${esc(nomeMembro(u.membro_id) || '—')}</td>
-            <td class="center"><span class="chip ${u.role === 'admin' ? 'chip-sessao' : 'chip-off'}">${u.role === 'admin' ? 'Administrador' : 'Membro'}</span></td>
+            <td class="center"><span class="chip ${perfilDe(u).chip}">${perfilDe(u).nome}</span></td>
             <td class="acao nowrap">
               <button class="btn-icon sm" data-senha="${esc(u.id)}" title="Redefinir senha" aria-label="Redefinir senha de ${esc(u.nome)}">${icon('chave')}</button>
               <button class="btn-icon sm" data-edit="${esc(u.id)}" title="Editar" aria-label="Editar ${esc(u.nome)}">${icon('editar')}</button>
-              ${u.id === usuario.id ? '' : `<button class="btn-icon sm" data-del="${esc(u.id)}" title="Excluir acesso" aria-label="Excluir acesso de ${esc(u.nome)}">${icon('lixo')}</button>`}
+              ${u.role === 'master' ? '' : `<button class="btn-icon sm" data-del="${esc(u.id)}" title="Excluir acesso" aria-label="Excluir acesso de ${esc(u.nome)}">${icon('lixo')}</button>`}
             </td>
           </tr>`).join('')}</tbody>
       </table></div>
@@ -69,7 +77,15 @@ export async function render(el, ctx) {
         <button class="btn sm" data-criar-para="${m.id}">${icon('plus')} ${esc(m.nome)}</button>`).join('')}</div>
     </section>` : ''}
 
-    <p class="aviso">${icon('info')} Administradores podem alterar todos os dados. Membros apenas visualizam. As senhas ficam criptografadas: nem o administrador consegue vê-las, só redefinir.</p>`;
+    <div class="card niveis">
+      <div class="card-head"><h2>Níveis de acesso</h2></div>
+      <ul>
+        <li><span class="chip chip-master">Master</span> Tudo do administrador + esta aba: cria e exclui acessos, define quem é administrador e redefine senhas. Só muda pelo SQL Editor do Supabase.</li>
+        <li><span class="chip chip-sessao">Administrador</span> Registra presença, mexe no caixa e nas mensalidades, edita calendário e membros.</li>
+        <li><span class="chip chip-off">Membro</span> Só visualiza.</li>
+      </ul>
+      <p class="aviso">${icon('info')} As senhas ficam criptografadas: nem o master consegue vê-las, só redefinir.</p>
+    </div>`;
 
   el.querySelector('#novo').onclick = () => formulario(ctx, {}, listaMembros, comAcesso);
   el.querySelectorAll('[data-criar-para]').forEach((b) => {
@@ -95,7 +111,7 @@ export async function render(el, ctx) {
 
 function formulario(ctx, u, membros, comAcesso) {
   const editando = Boolean(u.id);
-  const proprio = u.id === ctx.usuario.id;
+  const ehMaster = u.role === 'master';   // perfil master fica travado no site
   // No select, só membros sem acesso (mais o já vinculado a este usuário)
   const opcoes = membros.filter((m) => !comAcesso.has(m.id) || m.id === Number(u.membro_id));
   const senhaSugerida = gerarSenha();
@@ -105,7 +121,7 @@ function formulario(ctx, u, membros, comAcesso) {
       <label class="field"><span>Membro vinculado</span>
         <select name="membro_id">
           <option value="">— Nenhum (ex.: tio/consultor) —</option>
-          ${opcoes.map((m) => `<option value="${m.id}" ${Number(u.membro_id) === m.id ? 'selected' : ''}>${esc(m.nome)} · ${esc(m.cargo)}</option>`).join('')}
+          ${opcoes.map((m) => `<option value="${m.id}" ${Number(u.membro_id) === m.id ? 'selected' : ''}>${esc(m.nome)} · ${esc(m.cargo)}${categoriaDe(m) !== 'demolay' ? ` (${CATEGORIAS[categoriaDe(m)].nome})` : ''}</option>`).join('')}
         </select>
       </label>
       <label class="field"><span>Nome de exibição</span><input name="nome" required maxlength="80" value="${esc(u.nome || '')}"></label>
@@ -123,11 +139,12 @@ function formulario(ctx, u, membros, comAcesso) {
         <small class="muted">Anote e repasse ao membro. Ele pode trocar depois em “Alterar senha”.</small>
       </label>`}
       <label class="field"><span>Perfil</span>
-        <select name="role" ${proprio ? 'disabled' : ''}>
-          <option value="membro" ${u.role !== 'admin' ? 'selected' : ''}>Membro — só visualiza</option>
-          <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>Administrador — pode alterar tudo</option>
+        <select name="role" ${ehMaster ? 'disabled' : ''}>
+          ${ehMaster ? '<option value="master" selected>Master</option>' : ''}
+          <option value="membro" ${u.role === 'membro' || !u.role ? 'selected' : ''}>Membro — só visualiza</option>
+          <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>Administrador — presença, caixa, mensalidades…</option>
         </select>
-        ${proprio ? '<small class="muted">Você não pode mudar o seu próprio perfil.</small>' : ''}
+        ${ehMaster ? '<small class="muted">O perfil master só pode ser alterado pelo SQL Editor do Supabase.</small>' : ''}
       </label>
       <p class="form-erro" role="alert"></p>
       <div class="modal-actions">
@@ -154,7 +171,7 @@ function formulario(ctx, u, membros, comAcesso) {
     erro.textContent = '';
     const dados = {
       nome: f.nome.value.trim(),
-      role: proprio ? 'admin' : f.role.value,
+      role: ehMaster ? 'master' : f.role.value,
       membro_id: f.membro_id.value ? Number(f.membro_id.value) : null,
     };
     const botao = f.querySelector('.btn-primary');
